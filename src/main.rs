@@ -43,7 +43,7 @@ async fn main() {
             Err(warp::reject::custom(FooParamError))
         }))
         .and(warp::path::end())
-        .then(|v: u64| async move {
+        .and_then(|v: u64| async move {
             println!("running the /foo/int handler");
             if v % 2 == 0 {
                 Ok(Response::builder().body(format!("foo int: {}", v)).unwrap())
@@ -57,7 +57,7 @@ async fn main() {
         .and(warp::path("foo"))
         .and(query_filter())
         .and(warp::path::end())
-        .then(|query| async {
+        .and_then(|query| async {
             println!("running the /foo handler");
             let query_str = query?;
             Ok::<_, warp::Rejection>(
@@ -74,7 +74,7 @@ async fn main() {
             Err(warp::reject::custom(BarParamError))
         }))
         .and(warp::path::end())
-        .then(|v: u64| async move {
+        .and_then(|v: u64| async move {
             println!("running the /bar/int handler");
             if v % 2 == 0 {
                 Ok(Response::builder().body(format!("bar: {}", v)).unwrap())
@@ -91,7 +91,7 @@ async fn main() {
             Err(warp::reject::custom(BarParamError))
         }))
         .and(warp::path::end())
-        .then(|query| async move {
+        .and_then(|query| async move {
             println!("running the /bar handler");
             Ok::<_, warp::Rejection>(
                 Response::builder()
@@ -104,19 +104,8 @@ async fn main() {
         query_foo
             .boxed()
             .or(param_foo.boxed())
-            .unify()
             .or(query_bar.boxed())
-            .unify()
-            .or(param_bar.boxed())
-            .unify()
-            .and_then(|res: Result<_, warp::Rejection>| async move {
-                match res {
-                    Ok(res) => Ok::<_, warp::Rejection>(res),
-                    Err(e) => Ok(Response::builder()
-                        .body(format!("an error occurred: {:?}", e))
-                        .unwrap()),
-                }
-            }),
+            .or(param_bar.boxed()),
     )
     .run(([127, 0, 0, 1], 3030))
     .await;
